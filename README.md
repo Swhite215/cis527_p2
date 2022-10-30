@@ -47,8 +47,8 @@ ECHO:200 OK
 ## Tests PA #2
 Test | Description | Input | Output | Pass/Fail
 --- | --- | --- | --- |--- 
-Create Username and Password File
-Read Username and Password File to Initialize User Validation Structure
+Create Username and Password File - PASS
+Read Username and Password File to Initialize User Validation Structure - PASS
 Validation for LOGIN
 Username and Password Validation
 Return 200 OK Response for LOGIN
@@ -74,8 +74,8 @@ Peform exit() on Server to SHUTDOWN
 
 Test | Description | Input | Output | Pass/Fail
 --- | --- | --- | --- |--- 
-Read File | XXX | XX | XXX | XXX
-Add Address to Address Structure | XXX | XX | XXX | XXX
+Read Address File | XXX | XX | XXX | PASS
+Add Address to Address Structure | XXX | XX | XXX | PASS
 Validation for ADD, DELETE, LIST, SHUTDOWN, QUIT | XXX | XX | XXX | XXX
 Parse Add Command and Add to Address Structure | XXX | XX | XXX | XXX
 Return 200 OK Response for ADD | XXX | XX | XXX | XXX
