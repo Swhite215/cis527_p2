@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "clang - Build and debug active C file",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": [],
+            "preLaunchTask": "clang build active file"
+        },
+        {
+            "name": "clang - Build and debug server",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": [],
+            "preLaunchTask": "clang++ build server"
+        },
+        {
+            "name": "clang - Build and debug client",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": ["127.0.0.1"],
+            "preLaunchTask": "clang++ build client"
+        }
+    ]
+}
