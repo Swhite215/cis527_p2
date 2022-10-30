@@ -37,6 +37,17 @@ struct Address
 
 std::vector<Address> addressBook;
 
+// Global Username, Password, and Logged In Variables
+struct User
+{
+    std::string username;
+    std::string password;
+    bool logged_in;
+    std::string ip_address;
+    int file_descriptor;
+};
+std::vector<User> users;
+
 // the child thread
 void *ChildThread(void *newfd)
 {
@@ -93,6 +104,7 @@ void *ChildThread(void *newfd)
 // Function Prototypes
 bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
 void setUpAddressBook(std::string path);
+void setUpUser(std::string path);
 
 int main(void)
 {
@@ -100,6 +112,7 @@ int main(void)
     // Set Up Address Book
     std::string path = "/Users/swhit210/E.C.R.I.C_Development/cis527_p2";
     setUpAddressBook(path);
+    setUpUser(path);
 
     struct sockaddr_in myaddr;     // server address
     struct sockaddr_in remoteaddr; // client address
@@ -155,6 +168,7 @@ int main(void)
     for (;;)
     {
         // handle new connections
+        
         if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen)) == -1)
         {
             perror("accept");
@@ -234,6 +248,51 @@ void setUpAddressBook(std::string path)
         }
 
         addressFile.close();
+    }
+    else
+    {
+        std::cout << "Error opening file for reading!" << std::endl;
+        exit(1);
+    }
+}
+void setUpUser(std::string path){
+    string value;
+    std::fstream userFile;
+    std::string PATH = path;
+    std::string filename = "shadow.dat";
+    userFile.open(PATH + "/" + filename);
+
+    if (userFile)
+    { // Check For Error
+
+        int elementCount = 0;
+        std::string username;
+        std::string password;
+
+
+
+        // Read Each Line - Portion
+        while (userFile >> value)
+        { // If a value was read, execute the code
+            if (elementCount == 0)
+            {
+                username = value;
+                elementCount++;
+            }
+            else if (elementCount == 1)
+            {
+                password = value;
+                User userToAdd = {username,password,false," ",-1};
+
+                // Add user to Vector
+                users.push_back(userToAdd);
+
+                // Reset Count
+                elementCount = 0;
+            }
+        }
+
+        userFile.close();
     }
     else
     {
