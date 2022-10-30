@@ -14,6 +14,8 @@
 #include <pthread.h>
 #include <cstring>
 #include <cstdlib>
+#include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -23,6 +25,17 @@ using namespace std;
 fd_set master; // master file descriptor list
 int listener;  // listening socket descriptor
 int fdmax;
+
+// Global Address Book Variables
+struct Address
+{
+    int id;
+    string firstName;
+    string lastName;
+    string phone;
+};
+
+std::vector<Address> addressBook;
 
 // the child thread
 void *ChildThread(void *newfd)
@@ -77,8 +90,17 @@ void *ChildThread(void *newfd)
     }
 }
 
+// Function Prototypes
+bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
+void setUpAddressBook(std::string path);
+
 int main(void)
 {
+
+    // Set Up Address Book
+    std::string path = "/Users/swhit210/E.C.R.I.C_Development/cis527_p2";
+    setUpAddressBook(path);
+
     struct sockaddr_in myaddr;     // server address
     struct sockaddr_in remoteaddr; // client address
     int newfd;                     // newly accept()ed socket descriptor
@@ -158,4 +180,64 @@ int main(void)
         }
     }
     return 0;
+}
+
+void setUpAddressBook(std::string path)
+{
+
+    string value;
+    std::fstream addressFile;
+    std::string PATH = path;
+    std::string filename = "address.dat";
+    addressFile.open(PATH + "/" + filename);
+
+    if (addressFile)
+    { // Check For Error
+
+        int elementCount = 0;
+        int id;
+        string name;
+        string last;
+        string phone;
+
+        // Read Each Line - Portion
+        while (addressFile >> value)
+        { // If a value was read, execute the code
+            if (elementCount == 0)
+            {
+                id = std::stoi(value);
+                elementCount++;
+            }
+            else if (elementCount == 1)
+            {
+                name = value;
+                elementCount++;
+            }
+            else if (elementCount == 2)
+            {
+                last = value;
+                elementCount++;
+            }
+            else if (elementCount == 3)
+            {
+                phone = value;
+
+                // Generate Address Structure
+                Address addressToAdd = {id, name, last, phone};
+
+                // Add Address to Vector
+                addressBook.push_back(addressToAdd);
+
+                // Reset Count
+                elementCount = 0;
+            }
+        }
+
+        addressFile.close();
+    }
+    else
+    {
+        std::cout << "Error opening file for reading!" << std::endl;
+        exit(1);
+    }
 }

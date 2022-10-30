@@ -28,6 +28,7 @@
         "command": "/usr/bin/clang++",
         "args": [
           "-g",
+          "-lpthread",
           "${file}",
           "-o",
           "${fileDirname}/${fileBasenameNoExtension}"
@@ -49,6 +50,7 @@
         "command": "/usr/bin/clang++",
         "args": [
           "-g",
+          "-lpthread",
           "${file}",
           "-o",
           "${fileDirname}/${fileBasenameNoExtension}"
