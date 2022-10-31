@@ -16,7 +16,7 @@
 
 using namespace std;
 
-#define SERVER_PORT 4753
+#define SERVER_PORT 9999
 #define MAX_LINE 256
 #define STDIN 0
 

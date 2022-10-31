@@ -28,10 +28,10 @@
         "command": "/usr/bin/clang++",
         "args": [
           "-g",
-          "-lpthread",
           "${file}",
           "-o",
-          "${fileDirname}/${fileBasenameNoExtension}"
+          "${fileDirname}/${fileBasenameNoExtension}",
+          "-lpthread"
         ],
         "options": {
           "cwd": "${workspaceFolder}"
