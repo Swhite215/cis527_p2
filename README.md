@@ -49,13 +49,13 @@ Test | Description | Input | Output | Pass/Fail
 --- | --- | --- | --- |--- 
 Create Username and Password File - PASS
 Read Username and Password File to Initialize User Validation Structure - PASS
-Validation for LOGIN
-Username and Password Validation
-Return 200 OK Response for LOGIN
-Return 410 Response for LOGIN
-Log User Into System - Update User Status to TRUE in User Validation Structure
-Validation for LOGOUT
-Log User Out of System - Update User Status to FALSE in User Validation Structure
+Validation for LOGIN - PASS
+Username and Password Validation - PASS
+Return 200 OK Response for LOGIN - PASS
+Return 410 Response for LOGIN - PASS
+Log User Into System - Update User Status to TRUE in User Validation Structure - PASS
+Validation for LOGOUT - PASS
+Log User Out of System - Update User Status to FALSE in User Validation Structure - PASS
 Validation for Commands Executable by Annonymous Users vs. Logged In
 Validation for WHO
 Search for and Return List of Active Users and 200OK

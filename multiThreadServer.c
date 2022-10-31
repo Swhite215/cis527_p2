@@ -110,7 +110,7 @@ void *ChildThread(void *newfd)
                         {
                             password.pop_back();
                         }
-                        
+
                         elementCount++;
                         chunk = strtok(NULL, " ");
                     }
@@ -138,6 +138,7 @@ void *ChildThread(void *newfd)
                     {
                         // Set Logged In Value
                         it->logged_in = true;
+                        it->file_descriptor = childSocket;
                         loggedInUser = true;
                         break;
                     }
@@ -168,8 +169,49 @@ void *ChildThread(void *newfd)
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
+                
             } // Paste Server Code*
+            else if (strcmp(chunk, "LOGOUT\n") == 0){
+                std::vector<User>::iterator it = users.begin();
+                bool logout = false;
+                while (it != users.end())
+                {
+                    // Validate Username and Password
+                    if (it->file_descriptor == childSocket)
+                    {
+                        // Set Logged In Value
+                        it->logged_in = false;
+                        logout = true;
+                        break;
+                    }
+                    else
+                    {
+                        it++;
+                    }
+                }
+                if(logout){
+                    
+                    string fullMessage = "200 OK\n";
 
+                    // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                } else {
+                    // Form Message
+                    string fullMessage = "400 bad request - user is not logged in\n";
+
+                    // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+            }
+            
             // // we got some data from a client
             // cout << buf;
             // for (j = 0; j <= fdmax; j++)
