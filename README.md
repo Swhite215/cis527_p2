@@ -57,8 +57,8 @@ Log User Into System - Update User Status to TRUE in User Validation Structure -
 Validation for LOGOUT - PASS
 Log User Out of System - Update User Status to FALSE in User Validation Structure - PASS
 Validation for Commands Executable by Annonymous Users vs. Logged In
-Validation for WHO
-Search for and Return List of Active Users and 200OK
+Validation for WHO - PASS
+Search for and Return List of Active Users and 200OK - PASS
 Validation for LOOK
 Implement LOOK for First Name
 Implement LOOK for Last Name

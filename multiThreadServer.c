@@ -27,6 +27,8 @@ fd_set master; // master file descriptor list
 int listener;  // listening socket descriptor
 int fdmax;
 
+
+
 // Global Address Book Variables
 struct Address
 {
@@ -49,6 +51,11 @@ struct User
 };
 std::vector<User> users;
 std::map<int,std::string> fd_IP;
+// Function Prototypes
+bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
+void setUpAddressBook(std::string path);
+void setUpUser(std::string path);
+bool userIsLoggedIn(int childSocket);
 
 // the child thread
 void *ChildThread(void *newfd)
@@ -236,6 +243,7 @@ void *ChildThread(void *newfd)
                     }
                 }
 
+
                 // Form Response String and Send
                 if (foundActiveUsers) {
                     string success = "200 OK";
@@ -256,6 +264,17 @@ void *ChildThread(void *newfd)
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
+                
+            }
+            else if(strcmp(chunk, "ADD") == 0 && userIsLoggedIn(childSocket) ){
+                    string fullMessage = "200 ok \n";
+                     
+                     // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
             }
             
             // // we got some data from a client
@@ -279,10 +298,7 @@ void *ChildThread(void *newfd)
     }
 }
 
-// Function Prototypes
-bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
-void setUpAddressBook(std::string path);
-void setUpUser(std::string path);
+
 
 int main(void)
 {
@@ -479,4 +495,26 @@ void setUpUser(std::string path)
         std::cout << "Error opening file for reading!" << std::endl;
         exit(1);
     }
+}
+bool userIsLoggedIn(int childSocket){
+        std::vector<User>::iterator it = users.begin();
+        while (it != users.end())
+            {
+                // Validate Username and Password
+                if (it->file_descriptor == childSocket && it->logged_in)
+                {
+                    // Grab IP Address
+                    // std::string ip = fd_IP[childSocket];
+                    // string record = it->username + "    " + ip + "\n";
+                    // concatRecords += record;
+                    // foundActiveUsers = true;
+
+                    return true;
+                }
+                else{
+                    it++;
+                }
+            }
+            return false;
+
 }
