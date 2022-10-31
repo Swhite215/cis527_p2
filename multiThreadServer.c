@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define PORT 4753 // port we're listening on
+#define PORT 9999 // port we're listening on
 #define MAX_LINE 256
 
 fd_set master; // master file descriptor list
@@ -78,25 +78,115 @@ void *ChildThread(void *newfd)
         else
         {
 
-            // Paste Server Code*
+            // Validate Commands
+            char *chunk;
+            chunk = strtok(buf, " ");
 
-            // we got some data from a client
-            cout << buf;
-            for (j = 0; j <= fdmax; j++)
+            // Handle Login Command
+            if (strcmp(chunk, "LOGIN") == 0)
             {
-                // send to everyone!
-                if (FD_ISSET(j, &master))
+
+                string username;
+                string password;
+
+                bool inputError;
+
+                int elementCount = 0;
+
+                while (chunk != NULL)
                 {
-                    // except the listener and ourselves
-                    if (j != listener && j != childSocket)
+                    if (elementCount == 0)
                     {
-                        if (send(j, buf, nbytes, 0) == -1)
+                        chunk = strtok(NULL, " ");
+                        username = chunk;
+                        elementCount++;
+                    }
+                    else if (elementCount == 1)
+                    {
+                        chunk = strtok(NULL, " ");
+                        password = chunk;
+
+                        if (password.back() == '\n')
                         {
-                            perror("send");
+                            password.pop_back();
                         }
+                        
+                        elementCount++;
+                        chunk = strtok(NULL, " ");
+                    }
+                    else if (elementCount == 2)
+                    {
+                        inputError = true;
+                        break;
                     }
                 }
-            }
+                // Check Error Flag - Send Error Message
+                if (inputError)
+                {
+                    char sbuf[MAX_LINE] = "301 Message Format Error\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    continue;
+                }
+
+                // Check For Username in Vector
+                bool loggedInUser = false;
+                std::vector<User>::iterator it = users.begin();
+                while (it != users.end())
+                {
+                    // Validate Username and Password
+                    if (it->username == username && it->password == password)
+                    {
+                        // Set Logged In Value
+                        it->logged_in = true;
+                        loggedInUser = true;
+                        break;
+                    }
+                    else
+                    {
+                        it++;
+                    }
+                }
+
+                if (loggedInUser) {
+                    // Form Message
+                    string fullMessage = "200 OK\n";
+
+                    // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                } else {
+                    // Form Message
+                    string fullMessage = "410 Wrong User ID or Password\n";
+
+                    // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+            } // Paste Server Code*
+
+            // // we got some data from a client
+            // cout << buf;
+            // for (j = 0; j <= fdmax; j++)
+            // {
+            //     // send to everyone!
+            //     if (FD_ISSET(j, &master))
+            //     {
+            //         // except the listener and ourselves
+            //         if (j != listener && j != childSocket)
+            //         {
+            //             if (send(j, buf, nbytes, 0) == -1)
+            //             {
+            //                 perror("send");
+            //             }
+            //         }
+            //     }
+            // }
         }
     }
 }
@@ -168,7 +258,7 @@ int main(void)
     for (;;)
     {
         // handle new connections
-        
+
         if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen)) == -1)
         {
             perror("accept");
@@ -255,7 +345,8 @@ void setUpAddressBook(std::string path)
         exit(1);
     }
 }
-void setUpUser(std::string path){
+void setUpUser(std::string path)
+{
     string value;
     std::fstream userFile;
     std::string PATH = path;
@@ -269,8 +360,6 @@ void setUpUser(std::string path){
         std::string username;
         std::string password;
 
-
-
         // Read Each Line - Portion
         while (userFile >> value)
         { // If a value was read, execute the code
@@ -282,7 +371,7 @@ void setUpUser(std::string path){
             else if (elementCount == 1)
             {
                 password = value;
-                User userToAdd = {username,password,false," ",-1};
+                User userToAdd = {username, password, false, " ", -1};
 
                 // Add user to Vector
                 users.push_back(userToAdd);
