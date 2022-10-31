@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <vector>
 #include <fstream>
+#include <map>
 
 using namespace std;
 
@@ -47,6 +48,7 @@ struct User
     int file_descriptor;
 };
 std::vector<User> users;
+std::map<int,std::string> fd_IP;
 
 // the child thread
 void *ChildThread(void *newfd)
@@ -210,6 +212,50 @@ void *ChildThread(void *newfd)
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
+            } else if (strcmp(chunk, "WHO\n") == 0) {
+                // Iterate Through Vector
+                string concatRecords;
+
+                bool foundActiveUsers = false;
+                std::vector<User>::iterator it = users.begin();
+                while (it != users.end())
+                {
+                    // Validate Username and Password
+                    if (it->logged_in)
+                    {
+                        // Grab IP Address
+                        std::string ip = fd_IP[childSocket];
+                        string record = it->username + "    " + ip + "\n";
+                        concatRecords += record;
+                        foundActiveUsers = true;
+                        it++;
+                    }
+                    else
+                    {
+                        it++;
+                    }
+                }
+
+                // Form Response String and Send
+                if (foundActiveUsers) {
+                    string success = "200 OK";
+                    string finalMessage = success + "\n" + "The list of the active users: \n" + concatRecords;
+
+                    // Send Single Message
+                    char sbuf[finalMessage.length()];
+                    strcpy(sbuf, finalMessage.c_str());
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                } else {
+                     // Prepare Message
+                     string fullMessage = "404 NOT FOUND - No users are active. \n";
+                     
+                     // Prepare Buffer
+                    char sbuf[MAX_LINE];
+                    strcpy(sbuf, fullMessage.c_str());
+
+                    // Send Buffer
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
             }
             
             // // we got some data from a client
@@ -317,6 +363,9 @@ int main(void)
             { // keep track of the maximum
                 fdmax = newfd;
             }
+
+            // Add File Descriptor and IP Address to Mapping
+            fd_IP[newfd] = inet_ntoa(remoteaddr.sin_addr);
 
             if (pthread_create(&cThread, NULL, ChildThread, (void *)(intptr_t)newfd) < 0)
             {
