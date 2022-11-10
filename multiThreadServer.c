@@ -27,8 +27,6 @@ fd_set master; // master file descriptor list
 int listener;  // listening socket descriptor
 int fdmax;
 
-
-
 // Global Address Book Variables
 struct Address
 {
@@ -50,7 +48,7 @@ struct User
     int file_descriptor;
 };
 std::vector<User> users;
-std::map<int,std::string> fd_IP;
+std::map<int, std::string> fd_IP;
 // Function Prototypes
 bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
 void setUpAddressBook(std::string path);
@@ -157,7 +155,8 @@ void *ChildThread(void *newfd)
                     }
                 }
 
-                if (loggedInUser) {
+                if (loggedInUser)
+                {
                     // Form Message
                     string fullMessage = "200 OK\n";
 
@@ -167,7 +166,9 @@ void *ChildThread(void *newfd)
 
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
-                } else {
+                }
+                else
+                {
                     // Form Message
                     string fullMessage = "410 Wrong User ID or Password\n";
 
@@ -178,9 +179,10 @@ void *ChildThread(void *newfd)
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
-                
+
             } // Paste Server Code*
-            else if (strcmp(chunk, "LOGOUT\n") == 0){
+            else if (strcmp(chunk, "LOGOUT\n") == 0)
+            {
                 std::vector<User>::iterator it = users.begin();
                 bool logout = false;
                 while (it != users.end())
@@ -198,8 +200,9 @@ void *ChildThread(void *newfd)
                         it++;
                     }
                 }
-                if(logout){
-                    
+                if (logout)
+                {
+
                     string fullMessage = "200 OK\n";
 
                     // Prepare Buffer
@@ -208,7 +211,9 @@ void *ChildThread(void *newfd)
 
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
-                } else {
+                }
+                else
+                {
                     // Form Message
                     string fullMessage = "400 bad request - user is not logged in\n";
 
@@ -219,7 +224,9 @@ void *ChildThread(void *newfd)
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
-            } else if (strcmp(chunk, "WHO\n") == 0) {
+            }
+            else if (strcmp(chunk, "WHO\n") == 0)
+            {
                 // Iterate Through Vector
                 string concatRecords;
 
@@ -243,9 +250,9 @@ void *ChildThread(void *newfd)
                     }
                 }
 
-
                 // Form Response String and Send
-                if (foundActiveUsers) {
+                if (foundActiveUsers)
+                {
                     string success = "200 OK";
                     string finalMessage = success + "\n" + "The list of the active users: \n" + concatRecords;
 
@@ -253,30 +260,147 @@ void *ChildThread(void *newfd)
                     char sbuf[finalMessage.length()];
                     strcpy(sbuf, finalMessage.c_str());
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
-                } else {
-                     // Prepare Message
-                     string fullMessage = "404 NOT FOUND - No users are active. \n";
-                     
-                     // Prepare Buffer
+                }
+                else
+                {
+                    // Prepare Message
+                    string fullMessage = "404 NOT FOUND - No users are active. \n";
+
+                    // Prepare Buffer
                     char sbuf[MAX_LINE];
                     strcpy(sbuf, fullMessage.c_str());
 
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
-                
             }
-            else if(strcmp(chunk, "ADD") == 0 && userIsLoggedIn(childSocket) ){
-                    string fullMessage = "200 ok \n";
-                     
-                     // Prepare Buffer
+            else if (strcmp(chunk, "LOOK") == 0)
+            {
+                string searchType;
+                int searchInt;
+                string value;
+
+                bool inputError;
+
+                int elementCount = 0;
+
+                while (chunk != NULL)
+                {
+                    if (elementCount == 0)
+                    {
+                        chunk = strtok(NULL, " ");
+                        searchType = chunk;
+                        searchInt = stoi(searchType);
+
+                        if (searchInt < 1 || searchInt > 3)
+                        {
+                            inputError = true;
+                            break;
+                        }
+
+                        elementCount++;
+                    }
+                    else if (elementCount == 1)
+                    {
+                        chunk = strtok(NULL, " ");
+                        value = chunk;
+
+                        if (value.back() == '\n')
+                        {
+                            value.pop_back();
+                        }
+                        elementCount++;
+                        chunk = strtok(NULL, " ");
+                    }
+                    else
+                    {
+                        inputError = true;
+                        break;
+                    }
+                }
+                // Check Error Flag - Send Error Message
+                if (inputError)
+                {
+                    char sbuf[MAX_LINE] = "301 Message Format Error\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    continue;
+                }
+
+                // Handle Search
+                std::vector<Address>::iterator it = addressBook.begin();
+                string concatRecords;
+                string record;
+                int countOfFound = 0;
+
+                while (it != addressBook.end())
+                {
+
+                    if (searchInt == 1)
+                    {
+                        // First Name
+                        if (it->firstName == value) {
+                            // Capture
+                            countOfFound++;
+                            record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
+                            concatRecords += record;
+                        }
+                    }
+                    else if (searchInt == 2)
+                    {
+                        // Last Name
+                        if (it->lastName == value) {
+                            // Capture
+                            countOfFound++;
+                            record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
+                            concatRecords += record;
+                        }
+                    }
+                    else
+                    {
+                        // Phone
+                        if (it->phone == value) {
+                            // Capture
+                            countOfFound++;
+                            record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
+                            concatRecords += record;
+                        }
+                    }
+
+                    it++;
+                }
+
+                // Send Response
+                if (countOfFound == 0) {
+                    string fullMessage = "404 Your search did not match any records \n";
+
+                    // Prepare Buffer
                     char sbuf[MAX_LINE];
                     strcpy(sbuf, fullMessage.c_str());
 
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                } else {
+                    string success = "200 OK";
+                    string finalMessage = success + "\n" + "Found: " + std::to_string(countOfFound) + " match \n" + concatRecords;
+
+                    // Send Single Message
+                    char sbuf[finalMessage.length()];
+                    strcpy(sbuf, finalMessage.c_str());
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
             }
-            
+            else if (strcmp(chunk, "ADD") == 0 && userIsLoggedIn(childSocket))
+            {
+                string fullMessage = "200 ok \n";
+
+                // Prepare Buffer
+                char sbuf[MAX_LINE];
+                strcpy(sbuf, fullMessage.c_str());
+
+                // Send Buffer
+                send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+            }
+
             // // we got some data from a client
             // cout << buf;
             // for (j = 0; j <= fdmax; j++)
@@ -297,8 +421,6 @@ void *ChildThread(void *newfd)
         }
     }
 }
-
-
 
 int main(void)
 {
@@ -496,25 +618,26 @@ void setUpUser(std::string path)
         exit(1);
     }
 }
-bool userIsLoggedIn(int childSocket){
-        std::vector<User>::iterator it = users.begin();
-        while (it != users.end())
-            {
-                // Validate Username and Password
-                if (it->file_descriptor == childSocket && it->logged_in)
-                {
-                    // Grab IP Address
-                    // std::string ip = fd_IP[childSocket];
-                    // string record = it->username + "    " + ip + "\n";
-                    // concatRecords += record;
-                    // foundActiveUsers = true;
+bool userIsLoggedIn(int childSocket)
+{
+    std::vector<User>::iterator it = users.begin();
+    while (it != users.end())
+    {
+        // Validate Username and Password
+        if (it->file_descriptor == childSocket && it->logged_in)
+        {
+            // Grab IP Address
+            // std::string ip = fd_IP[childSocket];
+            // string record = it->username + "    " + ip + "\n";
+            // concatRecords += record;
+            // foundActiveUsers = true;
 
-                    return true;
-                }
-                else{
-                    it++;
-                }
-            }
-            return false;
-
+            return true;
+        }
+        else
+        {
+            it++;
+        }
+    }
+    return false;
 }
