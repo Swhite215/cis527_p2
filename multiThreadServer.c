@@ -338,7 +338,8 @@ void *ChildThread(void *newfd)
                     if (searchInt == 1)
                     {
                         // First Name
-                        if (it->firstName == value) {
+                        if (it->firstName == value)
+                        {
                             // Capture
                             countOfFound++;
                             record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
@@ -348,7 +349,8 @@ void *ChildThread(void *newfd)
                     else if (searchInt == 2)
                     {
                         // Last Name
-                        if (it->lastName == value) {
+                        if (it->lastName == value)
+                        {
                             // Capture
                             countOfFound++;
                             record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
@@ -358,7 +360,8 @@ void *ChildThread(void *newfd)
                     else
                     {
                         // Phone
-                        if (it->phone == value) {
+                        if (it->phone == value)
+                        {
                             // Capture
                             countOfFound++;
                             record = it->id + " " + it->firstName + " " + it->lastName + " " + it->phone + "\n";
@@ -370,7 +373,8 @@ void *ChildThread(void *newfd)
                 }
 
                 // Send Response
-                if (countOfFound == 0) {
+                if (countOfFound == 0)
+                {
                     string fullMessage = "404 Your search did not match any records \n";
 
                     // Prepare Buffer
@@ -379,7 +383,9 @@ void *ChildThread(void *newfd)
 
                     // Send Buffer
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
-                } else {
+                }
+                else
+                {
                     string success = "200 OK";
                     string finalMessage = success + "\n" + "Found: " + std::to_string(countOfFound) + " match \n" + concatRecords;
 
@@ -391,7 +397,96 @@ void *ChildThread(void *newfd)
             }
             else if (strcmp(chunk, "ADD") == 0 && userIsLoggedIn(childSocket))
             {
-                string fullMessage = "200 ok \n";
+
+                string first;
+                string last;
+                string phone;
+
+                bool inputError;
+
+                int elementCount = 0;
+
+                while (chunk != NULL)
+                {
+                    if (elementCount == 0)
+                    {
+                        chunk = strtok(NULL, " ");
+                        first = chunk;
+                        if (first.length() > 8)
+                        {
+                            inputError = true;
+                            break;
+                        }
+                        elementCount++;
+                    }
+                    else if (elementCount == 1)
+                    {
+                        chunk = strtok(NULL, " ");
+                        last = chunk;
+                        if (last.length() > 8)
+                        {
+                            inputError = true;
+                            break;
+                        }
+                        elementCount++;
+                    }
+                    else if (elementCount == 2)
+                    {
+                        chunk = strtok(NULL, " ");
+                        phone = chunk;
+
+                        if (phone.back() == '\n')
+                        {
+                            phone.pop_back();
+                        }
+
+                        if (phone.length() < 10 || phone.length() > 12)
+                        {
+                            inputError = true;
+                            break;
+                        }
+                        elementCount++;
+                        chunk = strtok(NULL, " ");
+                    }
+                    else
+                    {
+                        inputError = true;
+                        break;
+                    }
+                }
+                // Check Error Flag - Send Error Message
+                if (inputError)
+                {
+                    char sbuf[MAX_LINE] = "301 Message Format Error\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    continue;
+                }
+
+                // Determine ID Number and Add New Address Struct to Address Book
+                int id;
+                int size = addressBook.size();
+
+                if (size == 0)
+                {
+                    id = 1000;
+                }
+                else
+                {
+                    Address lastAddress = addressBook.back();
+                    id = lastAddress.id + 1;
+                }
+
+                // // Generate Address Structure
+                Address addressToAdd = {id, first, last, phone};
+
+                // // Add Address to Vector
+                addressBook.push_back(addressToAdd);
+
+                // Form Message
+                string success = "200 OK";
+                string strID = std::to_string(id);
+                string message = "The new Record ID is " + strID;
+                string fullMessage = success + "\n" + message + "\n";
 
                 // Prepare Buffer
                 char sbuf[MAX_LINE];
@@ -399,6 +494,89 @@ void *ChildThread(void *newfd)
 
                 // Send Buffer
                 send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+            }
+            else if (strcmp(chunk, "DELETE") == 0 && userIsLoggedIn(childSocket))
+            {
+
+                // Handle DELETE Command
+
+                int elementCount = 0;
+                bool inputError = false;
+
+                string id;
+                while (chunk != NULL)
+                {
+                    if (elementCount == 0)
+                    {
+                        chunk = strtok(NULL, " ");
+                        id = chunk;
+
+                        id.pop_back();
+
+                        if (id.length() != 4)
+                        {
+                            inputError = true;
+                            break;
+                        }
+
+                        elementCount++;
+                        chunk = strtok(NULL, " ");
+                    }
+                    else
+                    {
+                        inputError = true;
+                        break;
+                    }
+                }
+
+                // Check Error Flag - Send Error Message
+                if (inputError)
+                {
+                    char sbuf[MAX_LINE] = "301 Message Format Error\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    continue;
+                }
+
+                // Look for And Delete Record
+                std::vector<Address>::iterator it = addressBook.begin();
+                int counter = 0;
+                bool erased = false;
+                while (it != addressBook.end())
+                {
+                    if (it->id == stoi(id))
+                    {
+
+                        addressBook.erase(addressBook.begin() + counter);
+                        erased = true;
+                        break;
+                    }
+                    else
+                    {
+                        it++;
+                    }
+                    counter++;
+                }
+
+                // Send Response - Deleted Success or Error
+                if (erased)
+                {
+                    char sbuf[MAX_LINE] = "200 OK\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+                else
+                {
+                    char sbuf[MAX_LINE] = "403 The Record ID does not exist\n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+                // break;
+            }
+            else
+            {
+                if (!userIsLoggedIn(childSocket))
+                {
+                    char sbuf[MAX_LINE] = "401 You are not currently logged in, login first \n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
             }
 
             // // we got some data from a client
