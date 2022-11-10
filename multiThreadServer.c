@@ -35,7 +35,7 @@ struct Address
     string lastName;
     string phone;
 };
-
+std::string PATH = "/Users/swhit210/E.C.R.I.C_Development/cis527_p2";
 std::vector<Address> addressBook;
 
 // Global Username, Password, and Logged In Variables
@@ -49,6 +49,7 @@ struct User
 };
 std::vector<User> users;
 std::map<int, std::string> fd_IP;
+
 // Function Prototypes
 bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
 void setUpAddressBook(std::string path);
@@ -614,252 +615,311 @@ void *ChildThread(void *newfd)
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
             }
+            else if (strcmp(chunk, "QUIT\n") == 0)
+            {
+                // Handle QUIT Command
+                std::string filename = "address.dat";
+                // Write Address Book Vector to File
+                string filePth = PATH + "/" + filename;
+
+                bool writeSuccess = writeAddressBookToFile(addressBook, filePth);
+
+                // Handle Write Failure or Success
+                if (!writeSuccess)
+                {
+                    // FAILURE
+                    char sbuf[MAX_LINE] = "500 server error - unable to write address to file";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
                 else
                 {
-                    if (!userIsLoggedIn(childSocket))
-                    {
-                        char sbuf[MAX_LINE] = "401 You are not currently logged in, login first \n";
-                        send(childSocket, sbuf, strlen(sbuf) + 1, 0);
-                    }
+                    // SUCCESS
+                    char sbuf[MAX_LINE] = "200 OK";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
-
-                // // we got some data from a client
-                // cout << buf;
-                // for (j = 0; j <= fdmax; j++)
-                // {
-                //     // send to everyone!
-                //     if (FD_ISSET(j, &master))
-                //     {
-                //         // except the listener and ourselves
-                //         if (j != listener && j != childSocket)
-                //         {
-                //             if (send(j, buf, nbytes, 0) == -1)
-                //             {
-                //                 perror("send");
-                //             }
-                //         }
-                //     }
-                // }
             }
+            else
+            {
+                if (!userIsLoggedIn(childSocket))
+                {
+                    char sbuf[MAX_LINE] = "401 You are not currently logged in, login first \n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+            }
+
+            // // we got some data from a client
+            // cout << buf;
+            // for (j = 0; j <= fdmax; j++)
+            // {
+            //     // send to everyone!
+            //     if (FD_ISSET(j, &master))
+            //     {
+            //         // except the listener and ourselves
+            //         if (j != listener && j != childSocket)
+            //         {
+            //             if (send(j, buf, nbytes, 0) == -1)
+            //             {
+            //                 perror("send");
+            //             }
+            //         }
+            //     }
+            // }
         }
     }
+}
 
-    int main(void)
+int main(void)
+{
+
+    // Set Up Address Book
+    std::string path = "/Users/swhit210/E.C.R.I.C_Development/cis527_p2";
+    setUpAddressBook(path);
+    setUpUser(path);
+
+    struct sockaddr_in myaddr;     // server address
+    struct sockaddr_in remoteaddr; // client address
+    int newfd;                     // newly accept()ed socket descriptor
+    int yes = 1;                   // for setsockopt() SO_REUSEADDR, below
+    socklen_t addrlen;
+
+    pthread_t cThread;
+
+    FD_ZERO(&master); // clear the master and temp sets
+
+    // get the listener
+    if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
+        perror("socket");
+        exit(1);
+    }
 
-        // Set Up Address Book
-        std::string path = "/Users/swhit210/E.C.R.I.C_Development/cis527_p2";
-        setUpAddressBook(path);
-        setUpUser(path);
+    // lose the pesky "address already in use" error message
+    if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+    {
+        perror("setsockopt");
+        exit(1);
+    }
 
-        struct sockaddr_in myaddr;     // server address
-        struct sockaddr_in remoteaddr; // client address
-        int newfd;                     // newly accept()ed socket descriptor
-        int yes = 1;                   // for setsockopt() SO_REUSEADDR, below
-        socklen_t addrlen;
+    // bind
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = INADDR_ANY;
+    myaddr.sin_port = htons(PORT);
+    memset(&(myaddr.sin_zero), '\0', 8);
+    if (bind(listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == -1)
+    {
+        perror("bind");
+        exit(1);
+    }
 
-        pthread_t cThread;
+    // listen
+    if (listen(listener, 10) == -1)
+    {
+        perror("listen");
+        exit(1);
+    }
 
-        FD_ZERO(&master); // clear the master and temp sets
+    // add the listener to the master set
+    FD_SET(listener, &master);
 
-        // get the listener
-        if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    // keep track of the biggest file descriptor
+    fdmax = listener; // so far, it's this one
+
+    addrlen = sizeof(remoteaddr);
+
+    // main loop
+    for (;;)
+    {
+        // handle new connections
+
+        if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen)) == -1)
         {
-            perror("socket");
+            perror("accept");
             exit(1);
         }
-
-        // lose the pesky "address already in use" error message
-        if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+        else
         {
-            perror("setsockopt");
-            exit(1);
-        }
+            FD_SET(newfd, &master); // add to master set
+            cout << "multiThreadServer: new connection from "
+                 << inet_ntoa(remoteaddr.sin_addr)
+                 << " socket " << newfd << endl;
 
-        // bind
-        myaddr.sin_family = AF_INET;
-        myaddr.sin_addr.s_addr = INADDR_ANY;
-        myaddr.sin_port = htons(PORT);
-        memset(&(myaddr.sin_zero), '\0', 8);
-        if (bind(listener, (struct sockaddr *)&myaddr, sizeof(myaddr)) == -1)
-        {
-            perror("bind");
-            exit(1);
-        }
+            if (newfd > fdmax)
+            { // keep track of the maximum
+                fdmax = newfd;
+            }
 
-        // listen
-        if (listen(listener, 10) == -1)
-        {
-            perror("listen");
-            exit(1);
-        }
+            // Add File Descriptor and IP Address to Mapping
+            fd_IP[newfd] = inet_ntoa(remoteaddr.sin_addr);
 
-        // add the listener to the master set
-        FD_SET(listener, &master);
-
-        // keep track of the biggest file descriptor
-        fdmax = listener; // so far, it's this one
-
-        addrlen = sizeof(remoteaddr);
-
-        // main loop
-        for (;;)
-        {
-            // handle new connections
-
-            if ((newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen)) == -1)
+            if (pthread_create(&cThread, NULL, ChildThread, (void *)(intptr_t)newfd) < 0)
             {
-                perror("accept");
+                perror("pthread_create");
                 exit(1);
             }
-            else
+        }
+    }
+    return 0;
+}
+
+void setUpAddressBook(std::string path)
+{
+
+    string value;
+    std::fstream addressFile;
+    std::string PATH = path;
+    std::string filename = "address.dat";
+    addressFile.open(PATH + "/" + filename);
+
+    if (addressFile)
+    { // Check For Error
+
+        int elementCount = 0;
+        int id;
+        string name;
+        string last;
+        string phone;
+
+        // Read Each Line - Portion
+        while (addressFile >> value)
+        { // If a value was read, execute the code
+            if (elementCount == 0)
             {
-                FD_SET(newfd, &master); // add to master set
-                cout << "multiThreadServer: new connection from "
-                     << inet_ntoa(remoteaddr.sin_addr)
-                     << " socket " << newfd << endl;
+                id = std::stoi(value);
+                elementCount++;
+            }
+            else if (elementCount == 1)
+            {
+                name = value;
+                elementCount++;
+            }
+            else if (elementCount == 2)
+            {
+                last = value;
+                elementCount++;
+            }
+            else if (elementCount == 3)
+            {
+                phone = value;
 
-                if (newfd > fdmax)
-                { // keep track of the maximum
-                    fdmax = newfd;
-                }
+                // Generate Address Structure
+                Address addressToAdd = {id, name, last, phone};
 
-                // Add File Descriptor and IP Address to Mapping
-                fd_IP[newfd] = inet_ntoa(remoteaddr.sin_addr);
+                // Add Address to Vector
+                addressBook.push_back(addressToAdd);
 
-                if (pthread_create(&cThread, NULL, ChildThread, (void *)(intptr_t)newfd) < 0)
-                {
-                    perror("pthread_create");
-                    exit(1);
-                }
+                // Reset Count
+                elementCount = 0;
             }
         }
-        return 0;
+
+        addressFile.close();
     }
-
-    void setUpAddressBook(std::string path)
+    else
     {
+        std::cout << "Error opening file for reading!" << std::endl;
+        exit(1);
+    }
+}
+void setUpUser(std::string path)
+{
+    string value;
+    std::fstream userFile;
+    std::string PATH = path;
+    std::string filename = "shadow.dat";
+    userFile.open(PATH + "/" + filename);
 
-        string value;
-        std::fstream addressFile;
-        std::string PATH = path;
-        std::string filename = "address.dat";
-        addressFile.open(PATH + "/" + filename);
+    if (userFile)
+    { // Check For Error
 
-        if (addressFile)
-        { // Check For Error
+        int elementCount = 0;
+        std::string username;
+        std::string password;
 
-            int elementCount = 0;
-            int id;
-            string name;
-            string last;
-            string phone;
-
-            // Read Each Line - Portion
-            while (addressFile >> value)
-            { // If a value was read, execute the code
-                if (elementCount == 0)
-                {
-                    id = std::stoi(value);
-                    elementCount++;
-                }
-                else if (elementCount == 1)
-                {
-                    name = value;
-                    elementCount++;
-                }
-                else if (elementCount == 2)
-                {
-                    last = value;
-                    elementCount++;
-                }
-                else if (elementCount == 3)
-                {
-                    phone = value;
-
-                    // Generate Address Structure
-                    Address addressToAdd = {id, name, last, phone};
-
-                    // Add Address to Vector
-                    addressBook.push_back(addressToAdd);
-
-                    // Reset Count
-                    elementCount = 0;
-                }
+        // Read Each Line - Portion
+        while (userFile >> value)
+        { // If a value was read, execute the code
+            if (elementCount == 0)
+            {
+                username = value;
+                elementCount++;
             }
+            else if (elementCount == 1)
+            {
+                password = value;
+                User userToAdd = {username, password, false, " ", -1};
 
-            addressFile.close();
+                // Add user to Vector
+                users.push_back(userToAdd);
+
+                // Reset Count
+                elementCount = 0;
+            }
+        }
+
+        userFile.close();
+    }
+    else
+    {
+        std::cout << "Error opening file for reading!" << std::endl;
+        exit(1);
+    }
+}
+bool userIsLoggedIn(int childSocket)
+{
+    std::vector<User>::iterator it = users.begin();
+    while (it != users.end())
+    {
+        // Validate Username and Password
+        if (it->file_descriptor == childSocket && it->logged_in)
+        {
+            // Grab IP Address
+            // std::string ip = fd_IP[childSocket];
+            // string record = it->username + "    " + ip + "\n";
+            // concatRecords += record;
+            // foundActiveUsers = true;
+
+            return true;
         }
         else
         {
-            std::cout << "Error opening file for reading!" << std::endl;
-            exit(1);
+            it++;
         }
     }
-    void setUpUser(std::string path)
-    {
-        string value;
-        std::fstream userFile;
-        std::string PATH = path;
-        std::string filename = "shadow.dat";
-        userFile.open(PATH + "/" + filename);
+    return false;
+}
+bool writeAddressBookToFile(std::vector<Address> addressBook, string filePth)
+{
+  std::vector<Address>::iterator it = addressBook.begin();
 
-        if (userFile)
-        { // Check For Error
+  std::ofstream output;
+  output.open(filePth, std::ofstream::out);
 
-            int elementCount = 0;
-            std::string username;
-            std::string password;
+  if (output.fail())
+  {
+    std::cout << "Failed to open file for writing!" << std::endl;
 
-            // Read Each Line - Portion
-            while (userFile >> value)
-            { // If a value was read, execute the code
-                if (elementCount == 0)
-                {
-                    username = value;
-                    elementCount++;
-                }
-                else if (elementCount == 1)
-                {
-                    password = value;
-                    User userToAdd = {username, password, false, " ", -1};
+    return false;
+  }
 
-                    // Add user to Vector
-                    users.push_back(userToAdd);
+  while (it != addressBook.end())
+  {
+    int id;
+    string first;
+    string last;
+    string phone;
 
-                    // Reset Count
-                    elementCount = 0;
-                }
-            }
+    id = it->id;
+    first = it->firstName;
+    last = it->lastName;
+    phone = it->phone;
+    string recordID = std::to_string(id);
 
-            userFile.close();
-        }
-        else
-        {
-            std::cout << "Error opening file for reading!" << std::endl;
-            exit(1);
-        }
-    }
-    bool userIsLoggedIn(int childSocket)
-    {
-        std::vector<User>::iterator it = users.begin();
-        while (it != users.end())
-        {
-            // Validate Username and Password
-            if (it->file_descriptor == childSocket && it->logged_in)
-            {
-                // Grab IP Address
-                // std::string ip = fd_IP[childSocket];
-                // string record = it->username + "    " + ip + "\n";
-                // concatRecords += record;
-                // foundActiveUsers = true;
+    string record = recordID + " " + first + " " + last + " " + phone;
 
-                return true;
-            }
-            else
-            {
-                it++;
-            }
-        }
-        return false;
-    }
+    output << record << std::endl;
+    it++;
+  }
+  output.close();
+
+  return true;
+}
