@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 
   struct sockaddr_in sin;
   char buf[MAX_LINE];
+  char rbuf[MAX_LINE];
   int len;
   int s;
 
@@ -80,6 +81,16 @@ int main(int argc, char *argv[])
       // handle the user input
       if (fgets(buf, sizeof(buf), stdin))
       {
+      char *quitFound = strstr (buf, "QUIT");
+      char *shutdownFound = strstr (buf, "SHUTDOWN");
+
+      if(quitFound || shutdownFound){
+        send (s, buf, len, 0);
+        recv (s, rbuf, sizeof(rbuf), 0);
+        cout << "ECHO:" << rbuf;
+        break;
+      }
+
         buf[MAX_LINE - 1] = '\0';
         len = strlen(buf) + 1;
         send(s, buf, len, 0);
