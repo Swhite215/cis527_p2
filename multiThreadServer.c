@@ -55,6 +55,7 @@ bool writeAddressBookToFile(std::vector<Address> addressBook, string writePath);
 void setUpAddressBook(std::string path);
 void setUpUser(std::string path);
 bool userIsLoggedIn(int childSocket);
+bool userIsRoot(int childSocket);
 
 // the child thread
 void *ChildThread(void *newfd)
@@ -638,6 +639,61 @@ void *ChildThread(void *newfd)
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
             }
+            else if (strcmp(chunk, "SHUTDOWN\n") == 0 && userIsLoggedIn(childSocket))
+            {
+                // Handle SHUTDOWN Command
+                if (userIsRoot(childSocket))
+                {
+
+                    // Write Address Book Vector to File
+                    std::string filename = "address.dat";
+                    string filePth = PATH + "/" + filename;
+
+                    bool writeSuccess = writeAddressBookToFile(addressBook, filePth);
+
+                    // Handle Write Failure or Success
+                    if (!writeSuccess)
+                    {
+                        // FAILURE
+                        char sbuf[MAX_LINE] = "500 server error - unable to write address to file";
+                        send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    }
+                    else
+                    {
+
+                        char buf[MAX_LINE] = "210 the server is about to shutdown ...... \n";
+                        int j;
+                        for (j = 0; j <= fdmax; j++)
+                        {
+                            // send to everyone!
+                            if (FD_ISSET(j, &master))
+                            {
+                                // except the listener and ourselves
+                                if (j != listener && j != childSocket)
+                                {
+                                    if (send(j, buf, nbytes, 0) == -1)
+                                    {
+                                        perror("send");
+                                    }
+                                }
+                            }
+                        }
+
+                        // // SUCCESS
+                        // char sbuf[MAX_LINE] = "200 OK";
+                        // send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                    }
+
+                    // Close the Server and All Threads
+                    exit(0);
+                    break;
+                }
+                else
+                {
+                    char sbuf[MAX_LINE] = "402 User not allowed to execute this command \n";
+                    send(childSocket, sbuf, strlen(sbuf) + 1, 0);
+                }
+            }
             else
             {
                 if (!userIsLoggedIn(childSocket))
@@ -864,6 +920,7 @@ void setUpUser(std::string path)
         exit(1);
     }
 }
+
 bool userIsLoggedIn(int childSocket)
 {
     std::vector<User>::iterator it = users.begin();
@@ -887,39 +944,64 @@ bool userIsLoggedIn(int childSocket)
     }
     return false;
 }
+
 bool writeAddressBookToFile(std::vector<Address> addressBook, string filePth)
 {
-  std::vector<Address>::iterator it = addressBook.begin();
+    std::vector<Address>::iterator it = addressBook.begin();
 
-  std::ofstream output;
-  output.open(filePth, std::ofstream::out);
+    std::ofstream output;
+    output.open(filePth, std::ofstream::out);
 
-  if (output.fail())
-  {
-    std::cout << "Failed to open file for writing!" << std::endl;
+    if (output.fail())
+    {
+        std::cout << "Failed to open file for writing!" << std::endl;
 
+        return false;
+    }
+
+    while (it != addressBook.end())
+    {
+        int id;
+        string first;
+        string last;
+        string phone;
+
+        id = it->id;
+        first = it->firstName;
+        last = it->lastName;
+        phone = it->phone;
+        string recordID = std::to_string(id);
+
+        string record = recordID + " " + first + " " + last + " " + phone;
+
+        output << record << std::endl;
+        it++;
+    }
+    output.close();
+
+    return true;
+}
+
+bool userIsRoot(int childSocket)
+{
+    std::vector<User>::iterator it = users.begin();
+    while (it != users.end())
+    {
+        // Validate Username and Password
+        if (it->file_descriptor == childSocket && it->username == "root")
+        {
+            // Grab IP Address
+            // std::string ip = fd_IP[childSocket];
+            // string record = it->username + "    " + ip + "\n";
+            // concatRecords += record;
+            // foundActiveUsers = true;
+
+            return true;
+        }
+        else
+        {
+            it++;
+        }
+    }
     return false;
-  }
-
-  while (it != addressBook.end())
-  {
-    int id;
-    string first;
-    string last;
-    string phone;
-
-    id = it->id;
-    first = it->firstName;
-    last = it->lastName;
-    phone = it->phone;
-    string recordID = std::to_string(id);
-
-    string record = recordID + " " + first + " " + last + " " + phone;
-
-    output << record << std::endl;
-    it++;
-  }
-  output.close();
-
-  return true;
 }
