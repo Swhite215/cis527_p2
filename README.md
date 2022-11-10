@@ -6,9 +6,9 @@ Partners: Spencer White WHITSPEN and Dan Adenikinju DANIEAD
 ADD, DELETE, LIST, QUIT, and SHUTDOWN
 
 ### Instructions
-IMPORTANT - Update PATH variable (line 78) to path to current working directory
+IMPORTANT - Update PATH variable (line 38) to path to current working directory
 Compile - ```make```
-Run Server - ```./server```
+Run Server - ```./multiThreadServer```
 Run Client - ```./client 127.0.0.1```
 
 ### Problems and Bugs
@@ -59,16 +59,16 @@ Log User Out of System - Update User Status to FALSE in User Validation Structur
 Validation for Commands Executable by Annonymous Users vs. Logged In
 Validation for WHO - PASS
 Search for and Return List of Active Users and 200OK - PASS
-Validation for LOOK
-Implement LOOK for First Name
-Implement LOOK for Last Name
-Implement LOOK for Phone Number
-Return 200 OK Response with Results for LOOK
-Return 404 Response for LOOK
-Validation for Root User Issuing SHUTDOWN
-Return 402 If Not Root
-Broadcast to All Clients 210
-Peform exit() on Server to SHUTDOWN
+Validation for LOOK - PASS
+Implement LOOK for First Name - PASS
+Implement LOOK for Last Name - PASS
+Implement LOOK for Phone Number - PASS
+Return 200 OK Response with Results for LOOK - PASS
+Return 404 Response for LOOK - PASS
+Validation for Root User Issuing SHUTDOWN - PASS
+Return 402 If Not Root - PASS
+Broadcast to All Clients 210 - PASS
+Peform exit() on Server to SHUTDOWN - PASS
 
 ## Tests PA #1
 
