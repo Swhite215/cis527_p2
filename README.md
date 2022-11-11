@@ -13,7 +13,6 @@ Run Client - ```./client 127.0.0.1```
 
 ### Problems and Bugs
 1. We did not deal with messages longer than the MAX_LINE=256 value
-2. We did not identify a way to close every other
 
 ### Sample Outputs
 
