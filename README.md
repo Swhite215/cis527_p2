@@ -13,8 +13,31 @@ Run Client - ```./client 127.0.0.1```
 
 ### Problems and Bugs
 1. We did not deal with messages longer than the MAX_LINE=256 value
+2. We did not identify a way to close every other
 
 ### Sample Outputs
+
+LOGIN root root05
+200 OK
+
+WHO
+200 OK
+The list of the active users: 
+root    127.0.0.1
+
+LOOK 1 Spencer
+404 Your search did not match any records
+
+LOOK 2 White
+200 OK
+Found: 1 match 
+Santanna White 313-333-8966
+
+LOGOUT
+200 OK
+
+SHUTDOWN
+ECHO:401 You are not currently logged in, login first 
 
 LSIT
 ECHO:300 Invalid Command
