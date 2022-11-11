@@ -81,6 +81,13 @@ int main(int argc, char *argv[])
       // handle the user input
       if (fgets(buf, sizeof(buf), stdin))
       {
+
+      char *p;
+      if (p == strchr(buf, '\n')) {
+        std::cout<<"Dirty Buffer"<<std::endl;
+        continue;
+      }
+
       char *quitFound = strstr (buf, "QUIT");
       char *shutdownFound = strstr (buf, "SHUTDOWN");
 
@@ -106,11 +113,12 @@ int main(int argc, char *argv[])
       // handle data from the server
       if (recv(s, buf, sizeof(buf), 0) > 0)
       {
+
         char *shutdownFound = strstr (buf, "210 the server is about to shutdown");
+        cout << buf;
         if (shutdownFound) {
           break;
         }
-        cout << buf;
       }
     }
   }
