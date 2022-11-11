@@ -106,6 +106,10 @@ int main(int argc, char *argv[])
       // handle data from the server
       if (recv(s, buf, sizeof(buf), 0) > 0)
       {
+        char *shutdownFound = strstr (buf, "210 the server is about to shutdown");
+        if (shutdownFound) {
+          break;
+        }
         cout << buf;
       }
     }
