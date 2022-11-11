@@ -669,9 +669,9 @@ void *ChildThread(void *newfd)
                             if (FD_ISSET(j, &master))
                             {
                                 // except the listener and ourselves
-                                if (j != listener && j != childSocket)
+                                if (j != listener)
                                 {
-                                    if (send(j, buf, nbytes, 0) == -1)
+                                    if (send(j, buf, strlen(buf) + 1, 0) == -1)
                                     {
                                         perror("send");
                                     }
@@ -685,6 +685,7 @@ void *ChildThread(void *newfd)
                     }
 
                     // Close the Server and All Threads
+                    close(childSocket);
                     exit(0);
                     break;
                 }
@@ -702,24 +703,6 @@ void *ChildThread(void *newfd)
                     send(childSocket, sbuf, strlen(sbuf) + 1, 0);
                 }
             }
-
-            // // we got some data from a client
-            // cout << buf;
-            // for (j = 0; j <= fdmax; j++)
-            // {
-            //     // send to everyone!
-            //     if (FD_ISSET(j, &master))
-            //     {
-            //         // except the listener and ourselves
-            //         if (j != listener && j != childSocket)
-            //         {
-            //             if (send(j, buf, nbytes, 0) == -1)
-            //             {
-            //                 perror("send");
-            //             }
-            //         }
-            //     }
-            // }
         }
     }
 }
